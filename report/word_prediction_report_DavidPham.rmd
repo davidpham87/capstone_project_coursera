@@ -2,22 +2,31 @@
 title: 'Data Science Project: Word Prediction'
 author: "David Pham"
 date: "07.10.2014"
-output: pdf_document
+output: 
+  pdf_document:
+    toc: true
+    number_sections: true
+fontsize: 11pt
+geometry: margin=3cm
 ---
 
 
 # Introduction 
 
-This is the reproducible report of the data science cap stone project on 2014.
-The code is split into three main parts: 
+This is the reproducible report of the data science capstone project on 2014.
+The code is split into three main parts:
 
-1. Data preprocessing, with installation of the required packages.
-2. Modelling part, where all the transformation and adjustement are made in order to compute the probabilities.
-3. Prediction part, where we try to predict the following word of a user input.
+  1. Data preprocessing, with installation of the required packages. In this part, we mostly clean the input to avoid to much noise in the modelling/fitting part of the process. Basically, we read each line of the text file and use a cleaning algorithm described later.
+  2. Modelling part, where all the transformation and adjustement are made in order to compute the probabilities. We used N-grams with skipped words (_n=2,3, skip=0,1_) as features for prediction and Good Turing adjusting and adjusted counts have been used to account for unseen words. The exact descriptions of these algorithms can be found on the [github](https://github.com/davidpham87/capstone_project_coursera/tree/master/doc) page of the project. Note that thanks to a careful implementation having in mind memory leaks, the fitting part on the whole data set takes about 1 hour.
+  3. Prediction part, where we try to predict the following word of a user input. The user argument needs to be cleaned as well and then we create a simple lookup in a huge table in order to provide the most likely next words.
 
-Data visualisation (with ggplot2) is left in annexe.
+Data visualisation (with ggplot2) is left to the reader as they have been check previously in the other report.
+
+For lisibilty, descriptions and codes have been split, the descriptions of algorithms following as a linear flow, whereas code is appended at the end. 
 
 ## Pacakges requirements
+
+This steps makes sure the required pacakges are installed.
 
 ```{r, eval=FALSE}
 pkgs <- c('tm', 'openNLP', 'RWeka', 'RcmdrPlugin.temis',
@@ -27,16 +36,58 @@ pkgs <- c('tm', 'openNLP', 'RWeka', 'RcmdrPlugin.temis',
 install.packages(pkgs)
 ```
 
-
-# Data preprocessing
+# Data Preprocessing
 
 The data have been cleaned in the following way:
 
-* Removeal of punctation (except for the apostroph and the '-');
-* Deletion number and all;
-* Removal of most badwords;
-* White spaces are replace by spaces;
-* Stopwords are also removed.
+  * Removeal of punctation (except for the apostroph and the '-' as these might describe something different);
+  * Deletion numbers as they provide no help for prediction;
+  * Removal of most badwords and most stopwords;
+  * White spaces are replace by spaces;
+  * No stemming, because this requires to much memory to keep all the data (the stemmed and unstemmed one).
+
+The result of this steps is then used in the modeling part.
+
+# Modelling
+
+Here are the most important features about the modelling part.
+
+  * Bi- and trigrams have been counted and simulation of 4- and 5-grams have been fit by computing skip 1 words bigram and trigrams (function _CountNgramSkip_ which is faster than _txtcount_ from __tau__)
+  * Adjustement probability through Good Turing algorithm and adjusted count. Smoothing by back-off, but unnescesary for predition. Everything is in the function _ConditionalProbNgram_;
+  * Heavily rely on parallel computing and kill cluster to avoid memory leaks, in the _CountNgramSkip_;
+  * Data.table are used extensively throught the _data.table.keyby_ function;
+  * However it can not predict anything if the last word was unseen.
+
+The code takes 1 hour to fit the model by computing the (skip) n-gram.
+
+As stressed previously, the exact descriptions of the Good Turing, adjusted count and Back-off algorithms are found on the [github](https://github.com/davidpham87/capstone_project_coursera/tree/master/doc) page in the slides pdf, where the concept are explained clearly.
+
+
+# Prediction
+
+Basically, the function cleans the string argument in order to have a common structure as the previous results.
+Then it splits the strings by spaces and find the last two words (or the last two word with a skip words in between) and then a lookup operation is performed in a table to provide the most likely output. The function returns the 20 most probables following words as a table.
+
+It works in 99% of the case as long as the user does not want to game the function.
+
+# Possible improvements
+
+In the following, some possible ideas worth following are described.
+
+  * Levenstein distance could be used to predict unfinished words;
+  * Faster implementation in c++ or java;
+  * Use of maybe 4-gram and also skip 2 words;
+  * Better assesment on how precise the prediction is.
+
+# Conclusion
+
+It was a fun project and the main part of the project is inside the modelling part. Maybe it would require some tweaking on the part of the prediction part to account for unfinished words, but I think it would require a lot more time to proceed this. One appreciable feature is the speed of fitting of the algorithm, taking into account how __R__ is built.
+
+# Code
+
+In the following, the code used to do the project is appended for completeness. The comments should be helpful to understand how the functions are written.
+
+## Data Preprocessing
 
 ```{r, eval=FALSE}
 
@@ -106,18 +157,8 @@ save(txt.clean, file='final/en_US/en_US_corpus_clean.RData')
 ```
 
 
-# Modelling part
+## Modelling
 
-Here is the most important point about the modelling part.
-
-* Bi- and trigrams have been counted and simulation of 4- and 5-grams have been fit by computing skip 1 words bigram and trigrams (function _CountNgramSkip_ which is faster than _txtcount_ from __tau__)
-* Adjustement probability through Good Turing algorithm and adjusted count;
-* Smoothing by back-off, but unnescesary for predition;
-* Heavily rely on parallel computing and kill cluster to avoid memory leaks;
-* Data.table are used extensively;
-* Can not predict anything if the last word was unseen.
-
-The code takes 1 hour to fit the model by computing the n-gram.
 
 ```{r, eval=FALSE}
 # setwd('./Dropbox/coursera_capstone_project')
@@ -340,31 +381,91 @@ print('I finished to compute the probabilities. Now saving them.')
 save(prob.adj, file='prob.adj.all.Rdata')
 ```
 
-# Prediction
 
-Basically, the function cleans the string argument in order to have a common structure as the previous results.
-Then it splits the strings by spaces and find the last two words (or the last two word with a skip words in between).
-Then the function returns the 20 most probables following words as a table.
+## Prediction
 
-It works in 99% of the case as long as the user does not want to game the function.
+```{r, eval=FALSE}
+library('data.table')
 
-```{r}
+load(file='prob.adj.all.Rdata') # load the prob.adj variable
 
+##' Clean the String inputs from the users
+##'
+##' Cleans the strings for prediction
+##' @title Clean input string  
+##' @param s, a string character
+##' @return a clean version of the argument (lowercase, no punctuation)
+##' @author david
+CleanInputString <- function(s){
+  s <- tolower(s)
+  s <- gsub("(\\w)-(\\w)", "\\1\1dd\\2", s)
+  s <- gsub("(\\w)'(\\w)", "\\1\2dd\\2", s)
+  s <- gsub("[[:punct:]]+", "", s)
+  s <- gsub("\1dd", "-", s, fixed = TRUE)
+  s <- gsub("\2dd", "'", s, fixed = TRUE)
+  return(s)
+}
+
+
+##' Word Prediction
+##'
+##' Predict the following words by looking up on the table and provide
+##' the table of words with the adjusted probabilities
+##' @title Predict next word
+##' @param s, a string and we try to predict the next word
+##' @param prob.adj.init a list of adjusted probability
+##' @return a table with words
+##' @author David
+PredictNextWord <- function(s, prob.adj.init){
+
+  s <- CleanInputString(s)
+  
+  s.l <- strsplit(tolower(s), ' ')[[1]]
+  n <- min(length(s.l), 2)
+
+  prob.adj <- lapply(prob.adj.init, function(x) copy(x))
+  ## Predict usual n-gram
+  idxs <- list((-(n-1):0) + length(s.l), (-2*(n-1):0) + length(s.l))
+  
+  out.l <- list()
+  i <- 1 # bad
+  for(idx in idxs){
+    s. <- paste0(s.l[idx], collapse=' ')
+
+    res <- prob.adj$n3[s.][order(-cond.prop)]
+    idx.l <- 3  
+  
+    if (any(is.na(res$s))){
+      s.2 <- paste0(s.l[idx[-1]], collapse=' ')
+      res <- prob.adj$n2[s.2][order(-cond.prop)]
+      idx.l <- 2
+    }
+  
+    out.res <- res[, list(predict.word = 
+                            unlist(lapply(strsplit(s, ' '), '[', idx.l)),
+                          cond.prop)]
+    out.l[[i]] <- head(data.frame(out.res), 10)
+    i <- i + 1
+  }
+
+
+  ## Predict with skipngram
+  out.res <- na.omit(rbindlist(out.l))
+  out.res <- data.table(out.res)
+  # print(out.res)
+  out.res <- out.res[, list(cond.prop=mean(cond.prop)), by=predict.word]
+  
+  
+  ## rownames(out.res) <- NULL
+  return(data.frame(out.res))
+}
+
+s <- 'I expect to write a '
+PredictNextWord(s, prob.adj)
 ```
 
-
-# Possible improvements
-
-In the following, some possible ideas worth following are described.
-
-* Levenstein distance could be used to predict unfinished words
-* Faster implementation in c++ or java
-* Use of maybe 4-gram and also skip 2 words.
-* Better assesment on how precise the prediction is.
-
-# This is the session info
+## Session info
 
 ```{r}
 sessionInfo()
 ```
-
