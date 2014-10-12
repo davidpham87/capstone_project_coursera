@@ -1,0 +1,817 @@
+%%% LaTeX Template: Two column article
+%%%
+%%% Source: http://www.howtotex.com/
+%%% Feel free to distribute this template, but please keep to 
+%%% referal to http://www.howtotex.com/ here.
+%%% Date: February 2011
+
+%%% Preamble
+\documentclass[ DIV=calc, 
+paper=a4,
+fontsize=11pt,
+twocolumn]{scrartcl}
+
+\usepackage{lipsum} % Package to create dummy text
+
+\usepackage[english]{babel} % English language/hyphenation
+\usepackage[protrusion=true,expansion=true]{microtype} % Better typography
+\usepackage{amsmath,amsfonts,amsthm, bm} % Math packages
+\usepackage[pdftex]{graphicx} % Enable pdflatex 
+\usepackage[svgnames]{xcolor} % Enabling colors by their 'svgnames' 
+\usepackage[hang,small,labelfont=bf,up,textfont=it,up]{caption} % Custom captions under/above floats 
+\usepackage{epstopdf} % Converts .eps to .pdf 
+\usepackage{subfig} % Subfigures 
+\usepackage{booktabs} % Nicer tables 
+\usepackage{fix-cm} % Custom fontsizes
+\usepackage{multirow} % Multiple rows
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%% Custom sectioning (sectsty package)
+\usepackage{sectsty}													% Custom sectioning (see below)
+\allsectionsfont{%															% Change font of al section commands
+  \usefont{OT1}{phv}{b}{n}%										% bch-b-n: CharterBT-Bold font
+}
+
+\sectionfont{%																% Change font of \section command
+  \usefont{OT1}{phv}{b}{n}%										% bch-b-n: CharterBT-Bold font
+}
+
+
+
+%%% Headers and footers
+\usepackage{fancyhdr}												% Needed to define custom headers/footers
+\pagestyle{fancy}														% Enabling the custom headers/footers
+\usepackage{lastpage}	
+
+% Header (empty)
+\lhead{}
+\chead{}
+\rhead{}
+% Footer (you may change this to your own needs)
+\lfoot{\footnotesize Energy using home appliances: empirical study of the total cost}
+\cfoot{}
+\rfoot{\footnotesize page \thepage\ of \pageref{LastPage}}	% "Page 1 of 2"
+\renewcommand{\headrulewidth}{0.0pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+%%% Creating an initial of the very first character of the content
+\usepackage{lettrine}
+\newcommand{\initial}[1]{%
+  \lettrine[lines=3,lhang=0.3,nindent=0em]{
+    \color{DarkGoldenrod}
+    {\textsf{#1}}}{}}
+
+
+%%% Title, author and date metadata
+\usepackage{titling} % For custom titles
+
+\newcommand{\HorRule}{\color{DarkGoldenrod} % Creating a horizontal rule
+  \rule{\linewidth}{1pt}
+}
+
+\pretitle{\vspace{-30pt} \begin{flushleft} \HorRule 
+    \fontsize{50}{50} \usefont{OT1}{phv}{b}{n} \color{DarkRed} \selectfont 
+  }
+  \title{The most efficient energy 
+    using home appliance is the cheapest in the long-term, is it not?} % Title of your article goes here
+  \posttitle{\par\end{flushleft}\vskip 0.5em}
+
+\preauthor{\begin{flushleft}
+    \large \lineskip 0.5em \usefont{OT1}{phv}{b}{sl} \color{DarkRed}}
+  \author{David Pham, }											% Author name goes here
+  \postauthor{\footnotesize \usefont{OT1}{phv}{m}{sl} \color{Black} 
+    ETH Z\"urich, Chair of Economics % Institution of author
+
+    
+    \par\end{flushleft}\HorRule}
+
+\date{\today} % No date
+
+%%% Begin document
+\begin{document}
+
+\maketitle
+\thispagestyle{fancy} % Enabling the custom headers/footers for the first page 
+
+% The first character should be within \initial{}
+\initial{E}\textbf{nergy as a good is a paradox: inexpensive but scarce and
+  indispensable at the same time.} There exist a tremendous challenge for the
+institutions to inform the customers on the energy consumption of their buying
+in order to reduce the environmental impact. In that respect, NGOs usually
+display disastrous manifestations of our over-consumption of energy and
+governmental institutions often try to inform buyers of the costs of their
+purchases on their overall lifetime. For that reasons, several \emph{ranks} or
+\emph{classes} of energy efficiency have been applied to distinguish the products. For
+example, in Europe the label of a home appliance is ranked by a letter from G
+(worse) to A+++ (best). In a perfect world, these labels should rank two
+comparable goods according to their overall costs. This is however not the
+case. This report conducts an empirical research on the complete Swiss market of
+home appliances and shows that buying the most efficient product is
+unfortunately \emph{not often} the cheapest decision when considering the cost during the lifetime of a product.
+
+\section{Introduction}
+\label{sec:introduction}
+
+In a research sponsored by the Swiss Federal Office of the energy to study
+consumer behavior concerning investment choices on energy using product (EuP),
+the following question raised our interest: considering the total lifetime cost of EuP, how much money and energy are saved by purchasing the most efficient good within a category of comparable products
+? In order to answer this question,
+information has been gathered on the following home appliances:
+
+\begin{itemize}
+\item oven, 
+\item clothes dryers, 
+\item clothes washers, 
+\item dishwashers, 
+\item freezers and 
+\item fridges.
+\end{itemize}
+
+These products have been selected because in each category of device, they are
+homogeneous and there exist legal requirements for their minimum energy
+efficiency. Additionally, personal preference of the consumer should play a
+small role in the selection of a product. Several
+data-cleaning\footnote{Techniques such as data extraction, formatting and
+  comparison from \textsf{XML} and \textsf{html} files with regular
+  expressions.} and statistical algorithms have been performed in order to
+detect nonrandom signals. We tried to answer to the following questions:
+considering the price offered by Swiss online retailers, does it pay off over
+its lifetime to buy the most efficient, namely the A+++, product?  If yes, by
+how much? Are their relevant predictors that could help the consumers in their choices? Finally, is the ratio between the price offered by retailers and the catalog price of the producers differs
+across different energy ranks?
+
+In the remaining of the introduction, a summary of Swiss regulation is
+given. Then Section \ref{sec:data} describes the data, how they were collected
+and some exploratory plots.  Section \ref{sec:methodology} provides an overview
+of the statistical methods applied to the data and Section \ref{sec:results}
+analyzes the results. Section \ref{sec:discussion} concludes the report with a
+short discussion.
+
+\subsection{Swiss Regulations}
+\label{sec:regulations}
+Switzerland uses the same grading scheme and labels as the European Union for
+EuP, but with tighter minimum requirement in term of efficiency. For each
+product category, a good is ranked according to a score called the \emph{energy
+  efficiency index}. This number is computed with respect to complex
+standardized rules created by the European Union \cite{EU2009}.
+
+In Table \ref{tab:min.requ.EuP}, regulations and minimum requirements on EuP are
+summarized. More details can be found in \cite{BFE2013},
+
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{lll}
+    Product category & Switzerland & EU\\ 
+    \hline \vspace{-9.5pt}\\ 
+    Oven & B & None \\
+    Clothes Dryers & A & None \\
+    Clothes Washers & A & A \\
+    Dishwashers & A & A \\
+    Freezers, Fridges & A++ & A \\ \hline
+  \end{tabular}
+  \caption{Minimum energy rank requirement for EuP in CH and EU in 2013.}
+  \label{tab:min.requ.EuP}
+\end{table}
+
+One interesting remark is that for Swiss oven and clothes dryers, there are currently
+\emph{no appliances with a better rank than A}.
+
+\section{Data}
+\label{sec:data}
+This section includes a description of the data, several definitions used for the analysis and some graphical summaries.
+
+\subsection{Data collection}
+\label{sec:data-collection}
+
+The online database of the Energie Agentur Elektroger\"{a}te (EAE)
+\cite{EAE2013} has been used to perform the analysis.  On this site, relevant
+specifications of home appliances are maintained and given to the consumers. All
+these data were carefully recorded.
+
+Then for each of the 1758 products in the EAE database, its minimum price, its
+availability and a list of Swiss online retailers providing the product have
+been recorded from two online price comparators (guenstiger.ch \cite{GU2013} and
+toppreise.ch \cite{TP2013}).
+
+Annual costs of energy are only provided for some categories of products in the
+EAE databases. When the only available information was the energy consumption
+per use, the average usage per year was taken from \textsf{topten.ch} \cite{TT2012}. This
+internet site is an entity financed by the WWF, EWZ and Romandie
+Energie\footnote{For details, consult wwf.ch, ewz.ch and romande-energie.ch‎}
+which goals is to informs potential consumers on their energy consumption. Once
+the average use per year is set, the annual energy consumption is trivially
+computed as the product of the energy consumption per use and the average number
+of use per year.
+
+One regrettable feature of the problem with home appliances is that many
+producers offer only one product in each possible category products. It means
+there is often only one observation for a given brand, size, energy class and
+product category. It follows that regression analysis might encounter some
+singularities and the results might have a high variance.
+
+\subsection{Data structure}
+\label{sec:data-structure}
+For each product were recorded the name of its producer and of the model, the
+energy rank, the category (the type of home appliance), energy consumption (per
+use or annual), a list of retailers offering the product and the price they
+offer for it and the volume if applicable. The energy ranks ranged from B to
+A+++.
+
+The \emph{purchasing price} $p$ is defined as the minimum purchasing price in
+[CHF] found by online Swiss retailers. For each product, its affiliated
+\emph{running cost} $c_r$ is defined as
+\begin{align} \label{eq:run.cost}
+  c_r = c_y q \sum_{j=1}^{L} (\alpha\delta)^j,
+\end{align}
+where 
+\begin{enumerate}
+\item $c_y$, is an approximation of the yearly energy consumption in [kWh/year];
+\item $q$, the price of one unit of [kWh] in [CHF/kWh];
+\item $\alpha$, the annual expected increase of the energy price;
+\item $\delta$, the discounting coefficient;
+\item $L$, the expected lifetime of a appliance in [years].
+\end{enumerate}
+
+Otherwise stated, all these parameters except for $c_y$ have been set to a
+constant value. These reflect, in our opinion, the numbers a typical consumer
+would use to calculate the running costs. These values are found in Table
+\ref{tab:def.val.par}. Analysis have been performed to assess the sensitivity of
+the running costs in Subsection \ref{sec:sensitivity-analysis}.
+
+\begin{table}[h!]
+  \centering
+  \begin{tabular}{llll}
+    $q$ [CHF/kWh]& $\alpha$ & $\delta$ & $L$ [year] \vspace{1pt}\\
+    \hline \vspace{-9.5pt} \\
+    $0.2$ & $1.00$ & $1.00$ & $15$
+  \end{tabular}
+  \caption{Parameters' default value for the running cost $c_r$.}
+  \label{tab:def.val.par}
+\end{table}
+
+Additionally the \emph{total costs} $c_t$ is logically defined as the sum of the
+purchasing price $p$ and the running cost $c_r$.
+
+The purchasing price $p$ is put in contrast to the catalog price $p_c$, that is
+the price displayed in the catalog (or the recommended selling price) of the
+producers. The catalog price $p_c$ can be extracted from the EAE database. The
+\emph{discount} or \emph{relative rebate} are then defined as $1 - p/p_c$ and are used to determine if there
+exists a discrimination with respect to the energy class applied by the
+retailers, that is if they discount their product differently according to the
+energy rank of the products.
+
+Moreover, since for each product a list of possible retailers was available, a
+score for the \emph{competitiveness} of the retailers has been defined. For each
+product, the score of a retailer is computed as the ratio between the price at
+which the retailers offers the product and the minimum of the prices proposed by
+all the retailers. 
+
+Furthermore, in order to get to isolate the effect the effect of the energy
+class on the purchasing price and the total cost, the notion of \emph{twin
+  products} has been introduced. Two or more products are considered as twin if
+the only notable feature differentiating them is the energy consumption (and
+hence the energy class). Brand, volume or size and energy class have been used
+to classify if devices had a twin or not.
+
+Further, within a family $\mathcal{T}$ of twin products $x$ (i.e. a set products
+similar to each other with respect to almost all aspects but the energy class),
+select a quantitative feature $f$ of the product, such as the purchasing price,
+the total cost or the discount. Then for each product of element $x$ of
+$\mathcal{T}$, the \emph{difference with the minimum} of the selected feature is
+defined to
+\begin{align*}
+  f(x) -  \min_{u \in \mathcal{T}} \{f(u)\}.
+\end{align*}
+This measure is useful to compare the observations across the different sets of
+twin products. Note that this kind of measure can only be applied for twin products.
+
+The price of a [kWh] is one of the parameter that a government could manipulate in order to conduct its energy policy. Within a family of twin products, one could compute a threshold for the energy price above which the most efficient product would have the lowest total cost.  This threshold is defined as \emph{minimum energy price before profit} and can be found in Table \ref{tab:price-min-energy} for each device category and brands.
+
+% For example, two products could have the same features (energy rank, volume, 
+% brand, product category) but would differentiate in their construction
+% material. In this case, the cheapest of both product was chosen.
+
+% \subsection{Possible bias and sources of flaws}
+% \label{sec:possible-bias-flaws}
+
+%  A product's energy consumption is the most sensitive parameter of the
+%  analysis. That is why the main database of our analysis is taken from an
+%  official institution. 
+
+% Issues might arise because EAE database might not be up to
+% date and do not always reflect the state of the market.
+
+% Concerning the energy consumption comparison between twin products, there are
+% three potential sources of bias. The first one is the impossibility to include
+% old appliances appearing in the EAE database but not referenced in the online
+% retailers because retailers do not offer them anymore. The second bias is that
+% new models are absent of the EAE database and information on energy consumption
+% had to be manually provided by researching on the producers description for
+% products with energy class A++ or better. The third one is the error of
+% classifying mistakenly two products as twin products. For example, it might
+% happen that two products are classified as twins, because of their seeming
+% similarities (brand, volume, size, name), but in reality there is some
+% characteristic that we could not detect which would differentiate them a lot
+% (the construction material for example).
+
+% Further, the selection of the minimum price as the purchasing price as well as
+% the basis for the computation for the discount is a subject of discussion. Do
+% consumers search for the best offer or do they take the first acceptable offer?
+% This is an open question, but the choice of the minimum price yield a more
+% conservative conclusion and diminishes the possibility of false positive
+% decisions.
+
+% Moreover, it would have been practically impossible to collect all the data
+% manually. Several programs needed to be build for collecting data
+% automatically. As one can never guarantee the absence of potential programming
+% errors, this might be a source of mistake. However, these programs have been
+% tested during months and had reliable results. Finally, humans mistakes always
+% have non-zero probability to happen, even though they should be observable in
+% exploratory plots.
+
+
+\subsection{Exploratory analysis}
+\label{sec:exploratory-analysis}
+
+Descriptions of the figures to support the exploratory analysis are provided in Table \ref{tab:explor-plot} and these figures are at the end of the report.
+
+
+\section{Methodology}
+\label{sec:methodology}
+
+In order to get significant measures on the effect of the energy rank on the
+total cost and on the discount, a standard weighted multiple linear regression
+on categorical data with a \v Sid\'ak correction on the $p$-values had been
+performed. Both methods are briefly presented in Section
+\ref{sec:meth-deta}.
+
+
+As there are not enough data, four models will be fitted. Observations from
+Figure \ref{fig:twin.sum.plot} were studied under two different models. The
+first model describes the dependent variable as a linear combination of the
+brand and the energy class, whereas the second model assume a linear combination
+between the device category and the energy class. The range of the variable can
+be found in Table \ref{tab:variable.reg}.
+
+
+
+\section{Results}
+\label{sec:results}
+
+
+Outputs of the regressions are found in Table \ref{tab:reg.out}. Without even
+considering \v Sid\'ak correction for the $p$-value, all predictive variables
+seem to be non-significant. There is however one case where the energy class
+seems to play a role: A++ devices seems to have a higher discount estimated at
+1\%.
+
+These analyses tell two things: among twin products, that is products who are
+almost identical but for their energy consumption, one can not reject (in the
+statistical sense) the two hypothesis: Across all products,
+
+\begin{enumerate}
+\item total costs are identical;
+\item discounts are identical.
+\end{enumerate}
+
+It implies that the difference in purchasing price might be compensated by
+the energy consumption.
+
+% Additionally to remarks in Section \ref{sec:possible-bias-flaws},
+Notice that because of a lack of data points, estimates from
+the four analysis in Section \ref{sec:results} unfortunately suffer from great
+correlation between each other.
+
+
+
+\subsection{Sensitivity Analysis}
+\label{sec:sensitivity-analysis}
+
+The analysis is highly sensitive to the parameters used to compute the running
+cost $c_r$. Even though derivatives (or finite differences) of Equation
+(\ref{eq:run.cost}) are easily computed, it is a good practice to graphically
+represent the sensitivity. In Figure \ref{fig:sensitivity.analysis}, the running
+cost of a standard fridge with a volume of 315 litter are simulated under
+different conditions. Under the most realistic conditions\footnote{$L = 15$,
+  $\alpha \approx 1$, $\delta \approx 1$ in Equation (\ref{eq:run.cost}).}, the
+previous results are fairly stable.
+
+Additionally, the analysis is conservative, in the sense that all the parameters
+$\alpha, L, \delta$ have greater impact than for most other devices. This means
+that observations are magnified compared to other appliances. Indeed, a 315
+litter fridge is bigger than most sold fridge and fridges consume more energy
+than most other EuP. Hence, if no effects are detected in this setup, it is
+quite unlikely that they appear in most other cases.
+
+It results from this analysis that our results are reasonably robust.
+
+\section{Discussion}
+\label{sec:discussion}
+
+Empirically, some brands provide goods for which the savings in energy costs
+compensate the higher purchasing price. However, this statement is by far not
+shared by the great majority of our observations, even though our statistical
+analysis can not detect any difference between twin products.
+
+Furthermore, the amount of savings in running costs is very small compared to initial investment
+and also with respect to the lifetime of the appliance. In most cases, 250 [CHF]
+could be saved over 15 years by buying the most efficient EuP with the
+\emph{best online offer}. Are the savings worth the cost of research for the minimum price of a household appliance, in a
+country where the median salary is at 6500 [CHF]?
+
+Moreover, it remains an open question if the criteria to define labels should be
+based on energy efficiency over energy consumption. Indeed, from the points of
+view of energy producers (which often are states) what matters is the absolute
+value of consumed energy from a product and not its efficiency. As displayed in
+Figure \ref{fig:energy.consumption} there exist products which consume less
+energy that other products with a better energy rank (due to the fact the later
+products are bigger in size then the former). However, where should the effort
+go? Motivating consumers to buy more efficient products or buying the products
+which consume the least energy? This question has even more weight in other
+markets than home appliances, such as in the automobile or consumer electronic
+devices markets.
+
+Finally, it was unfortunately demonstrated that buying the most efficient EuP is
+almost always not the best economic decision. Moreover, when there was a saving of running costs,
+it was at best negligible. It follows that consumers are economically rational
+economic behavior when they are not buying the most efficient EuP.. Under these conditions, displaying additional
+information on the running cost will probably not change their buying pattern.
+
+\appendix
+
+\section{Methodological details}
+\label{sec:meth-deta}
+This section provide an overview of the statistical machinery used to obtain the
+results.
+
+\subsection{Weighted linear regression}
+For $i=1, \dots, n$, the variable $y_i$ denotes the response and $\bm{x}_i =
+(x_{i1}, \dots, x_{ip})^\top$ the predictors of observation $i$. Then the linear
+regression predicts the value of the response $y_i$ as
+\begin{align*}
+  y_i = f(\bm{x}_i, \bm{\beta}) + \varepsilon_i,
+\end{align*}
+where
+\begin{align*}
+f(\bm{x}_i, \bm{\beta}) =  \beta_0 + \beta_1 x_{i1} + \dots + \beta_p x_{ip},
+\end{align*}
+and where $\varepsilon_i$ are independent and identically distributed from a
+centered distribution with finite variance.
+
+Note that this assume that all errors have a common variance. The parameter
+vector $\bm{\beta}$ is chosen such that it minimizes the risk
+\begin{align*}
+  \sum_{i=1}^n w_i r_i^2   
+\end{align*}
+where $r_i$ are the so-called residuals
+\begin{align*}
+ r_i =  y_i -  f(\bm{x}_i, \bm{\beta}),
+\end{align*}
+and where $w_i$ are the so-called weights. The weights are sets to be
+identically equal to 1 for the ordinary linear regression. However, when the
+errors $\varepsilon_i$ obviously do not possess a homogeneous variance, the
+weights might be sets to $1/\hat\sigma_x^2$, the inverse of the fitted local
+variance. In other words, in order to standardize the variance, the weights
+$w_i$ are set to
+\begin{align*}
+  w_i = \exp\{- g(\bm{x}_i)\}
+\end{align*}
+where $g$ is some regression function predicting $\log r_i^2$ from $\bm{x}_i$. In this report, we set $g$ as a linear regression, that is $g(\bm{x}) = \bm{x}^\top\bm{\gamma}$ where $\bm{\gamma} \in \mathbb{R}^p$ minimize the mean quadratic difference of $\log r_i^2$ and $\bm{x_i}^\top \bm{\gamma}$.
+
+
+\subsection{\v Sid\' ak correction} 
+In a hypothesis test, one consider the $p$-value, as the measure to decide
+whether to accept or to reject some null hypothesis $H_0$. In the case of
+regression, the $H_0$ is the hypothesis that the regression vector $\bm{\beta}$
+identically equals $\bm{0}$. The issue is that several hypothesis tests are
+applied and the probability to obtain false results increases. \emph{\v Sid\' ak
+  correction} (sometimes mistakenly referred as \emph{Bonferroni correction}) is
+a method that corrects the problem by setting a stricter rejection
+level. Namely, a coefficient $\beta_j$, $j = 1,\dots, p$, will be accepted at
+the $1-\alpha$ confidence level if its estimated $p$-value respects
+\begin{align*}
+p\textrm{-value} \leq 1 - (1-\alpha)^{1/p},
+\end{align*}
+where $p$ in the right hand side of the formula is the number of predictors of $y_i$.
+
+
+\begin{thebibliography}{99}
+
+\bibitem{BFE2011} BFE Schweiz (Prognos AG),
+  \textit{http://www.bfe.admin.ch/themen/00526/00541/
+00542/02721/index.html?lang=fr\&dossier
+\_id=02722}, Web. 02. Apr. 2013.
+
+\bibitem{BFE2013} BFE Schweiz,
+  \textit{http://www.bfe.admin.ch/themen
+/00507/05479/index.html?lang=de\&dossier\_
+id=04293},
+  Web. 06. May 2013.
+
+\bibitem{EU2009} European Union, \textit{\textsc{Commission Regulation} (EC) No
+    643/2009}, Official Journal of the European Union, 23.7.2009.
+  
+\bibitem{EAE2013} Energie Agentur Elektroger\"{a}t, \textit{
+    http://db.eae-geraete.ch/}, Web. 24 Apr. 2013.
+
+\bibitem{EtiquetteEnergie2011} Energie Schweiz, \textit{Etiquette-énergie pour
+    les r\'efrig\'erateurs et les cong\'elateurs}, 2011.
+  
+\bibitem{GU2013} Guenstiger.ch, \textit{
+    http://www.guenstiger.ch/}, Web. 24 Apr. 2013.
+
+\bibitem{swisslaw259.a} Swiss law, \textit{
+    http://www.admin.ch/f/rs/730\_01/
+    app9.html}. Web. 02 Apr. 2013.
+
+\bibitem{TP2013} Toppreise.ch, \textit{ 
+    http://www.toppreise.ch/}, Web. 24
+  Apr. 2013.
+
+\bibitem{TT2012} Topten.ch, \textit{
+    http:/www.topten.ch}, Web. 24. Apr. 2013.
+
+\end{thebibliography}
+
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=15cm]{Figure/ClassSummary}
+  \caption{Distribution of the energy rank across different product
+    category. Histogram of the count of product in each energy class grouped by
+    device category. Source: EAE Database.}
+  \label{fig:class.summary}
+\end{figure*}
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=17cm]{Figure/PlotEuP}
+  \caption{Running cost in [CHF] by device category and energy class with value
+    in Table \ref{tab:def.val.par}. Upon renaming and scaling the y-axis, this
+    graphic also represent the energy consumption of the devices. Source : EAE
+    Database.}
+  \label{fig:energy.consumption}
+\end{figure*}
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=18cm]{Figure/Twin_Density}
+  \caption{Summary plots for twin products for the difference with the minimum
+    total cost (left) and the difference with minimum discount (right) by device
+    category (upper) and brand (lower). Black dots represent the median and the
+    bars are the first and third quartiles.}
+  \label{fig:twin.sum.plot}
+\end{figure*}
+
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=18cm]{Figure/diff_price_min}
+  \caption{Difference in [CHF] of the minimum price against volume for twin
+    products by device categories and brands. In ideal
+    conditions, energy efficient products should have the lowest purchasing
+    price, that is they would be the cheapest products on the market. In this
+    situation, all blue dots (representing A+++ product) should be at
+    zero. Source: Toppreise.ch and Guenstiger.ch (23.04.2013).}
+  \label{fig:diff.price.min}
+\end{figure*}
+
+\begin{figure*}
+  \centering 
+  \includegraphics[width=18cm]{Figure/diff_tot_cost}
+  \caption{Difference in [CHF] of the total cost against volume for twin
+    products by device categories and brands. In ideal conditions, energy
+    savings from A+++ products would compensate their higher purchasing
+    prices. That is, their energy consumption would be so low that their overall
+    costs are lower than those of less efficient products.  In this situation,
+    all blue dots (representing A+++ products) should be at zero. The total cost
+    is sum of the running cost and the purchasing price, hence the cost of a
+    product over its lifetime. Source: Toppreise.ch and Guenstiger.ch
+    (23.04.2013).}
+  \label{fig:diff.tot.cost}
+\end{figure*}
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=18cm]{Figure/diff_discount_min}
+  \caption{Difference of the discount against volume for twin products by device
+    categories and brands. The discount is the relative difference of the price
+    displayed by the producers in their catalog and the purchasing price offered
+    by online retailers. In ideal conditions, the most efficient products would
+    be those with the biggest discount. In this situation, blue dots
+    (representing A+++ products) should be the highest observations. Note that
+    high discounts are useful if the purchasing price of efficient products are
+    similar to those of less efficient appliances. Source: Toppreise.ch and
+    Guenstiger.ch (23.04.2013).}
+  \label{fig:diff.disc.min}
+\end{figure*}
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=18cm]{Figure/Discount_plot2}
+  \caption{Brand against discount for all products by device categories. The
+    discount is the relative difference of the price displayed by the producers
+    in their catalog and the purchasing price offered by online retailers. In
+    ideal conditions, the most efficient products would be those with the
+    biggest discount. In this situation, blue dots (representing A+++ products)
+    should be on the right of all plots. Note that high discounts are useful if
+    the purchasing price of efficient products are similar to those of less
+    efficient appliances. Further, we observe that the discount applied to
+    products from Miele do have a smaller discount, as the prices in the EAE
+    database (which we considered as the catalog price) are already discounted.
+    Source: Toppreise.ch and Guenstiger.ch (23.04.2013).}
+  \label{fig:discount_density}
+\end{figure*}
+
+
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=15cm]{Figure/retailersfitteddishwashers}
+  \caption{Distribution of availability and offers of fitted dishwashers from
+    Swiss online retailers. Source: Toppreise.ch and Guenstiger.ch
+    (23.04.2013).}
+  \label{fig:fitted-dish-retail}
+\end{figure*}
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=18cm]{Figure/competitivenessfitteddishwashers}
+  \caption{Competitiveness of Swiss retailers on the market of dishwashers. Each
+    dot represents the score of one product that the retailer propose. Black
+    dots represents the bootstrapped estimate of the median and its 95\%
+    confidence interval is given by the red bars. The violin shape is a density
+    kernel estimation of the data points. Source: Toppreise.ch and Guenstiger.ch
+    (24.04.2013). }
+  \label{fig:competitiveness.score}
+\end{figure*}
+
+\begin{figure*}
+  \centering
+  \includegraphics[width=13cm]{Figure/VariationDeltaAlpha}
+  \caption{Sensitivity analysis for the running costs of a standard fridge with
+    a volume of 315 litter. Values in Table \ref{tab:def.val.par} are used for
+    unspecified parameters. Source : EAE Database.}
+  \label{fig:sensitivity.analysis}
+\end{figure*}
+
+\begin{table*}[h!]
+  \centering
+  \begin{tabular}{ll}
+  Name & Variables \\
+  \hline \vspace{-9.5pt} \\
+  Depdendent variables & Difference with the minimum total cost (DMTC), \\
+  & difference with the minimum discount (DMD) \\
+  Energy Class & A+, A++, A+++ \\
+  Brand & Bauknecht, Bosch, Electrolux, Liebherr, Miele, Siblir, Siemens, Zug \\ 
+  Device & Clothes washers, dishwashers, freezers, fridges.
+  \end{tabular}
+  \caption{Possible values of the predictors variables for the statistical regressions.}
+  \label{tab:variable.reg}
+\end{table*}
+
+
+\begin{table*}[h!]
+  \centering
+  \begin{tabular}{llll}
+    Figure&  $x$-axis & $y$-axis & Description \vspace{0.5pt}\\
+    \hline \vspace{-9.5pt} \\
+    \ref{fig:class.summary}  & Energy class & \parbox{2.5cm}{Count of products}
+    & {\parbox{9cm}{
+        Empirical histogram of the products according to their energy class.
+        A+++ products are underrepresented in most categories. The
+        category of dishwashers displays some uniformity in term of number of products in each energy class.
+      }} \vspace{10pt} \\ 
+
+
+
+    \ref{fig:energy.consumption} & Energy class & Running cost &
+    {\parbox{9cm}{
+        The running cost of the appliances against the energy class by category.
+        Notice that for some appliances less
+        efficient products actually consume less energy.
+      }} \vspace{10pt} \\ 
+
+    \ref{fig:twin.sum.plot} & \parbox{3.5cm}{Difference with the
+        minimum total cost (left) and with the minimum discount (right)} & Energy class & 
+    \parbox{9cm}{ In many cases the median
+        total cost of  A++ products is the lowest among the energy class. There
+      does not seem to have any particular difference for the discount.}
+    \vspace{10pt} \\
+
+
+    \ref{fig:diff.price.min} & Volume & \parbox{2.5cm}{Difference with the
+      minimum purchasing price} & \parbox{9cm}{
+      The most energy efficient products (A+++) are oftentimes those
+      with the highest purchasing price. There does not seem to have
+      any difference in purchasing price for A++ and A+ products.
+    } \vspace{10pt} \\
+
+    \ref{fig:diff.tot.cost}  & Volume  & \parbox{2.5cm}{Difference with the total
+      cost} & \parbox{9cm}{
+      Related to Figure \ref{fig:diff.price.min}, the savings on
+      running costs do not compensate the difference in
+      purchasing prices. The most energy efficient products (A+++) are oftentimes those with the highest total
+      cost. For fridges and freezers, A++ products possess the lowest total cost in
+      general.
+    } \vspace{10pt}\\
+
+    \ref{fig:diff.disc.min}   & Volume & \parbox{2.5cm}{Difference with the minimum
+      discount} & \parbox{9cm}{
+      There is no apparent difference between the
+      energy classes in term of discount. Often the difference lies in a
+      range of $0$ to $10$ percent.
+    }
+    \vspace{10pt}\\ 
+
+    \ref{fig:discount_density} & Discount & Brand  & \parbox{9cm}{
+      Distribution of the discount found on Toppreise.ch and Guenstiger.ch. There are no obvious clusters defined by energy classes. When considering all products, discounts of some brands (in particular Siemens and Bosch) range in small intervals, meaning the catalog prices of their products are overpriced compared to the purchasing price.     
+    }\vspace{10pt}  \\
+
+    \ref{fig:fitted-dish-retail} & \parbox{3cm}{Count of available dishwashers} & \parbox{2.5cm}{Swiss online retailers}  & \parbox{9cm}{
+      These plots present an overview of the dishwashers' market for online Swiss retailers. For each observed retailer, the availability (upper plot) and the proportion of product for each energy class (lower plot) have been depicted.  
+}\vspace{10pt}  \\
+    
+\ref{fig:competitiveness.score} & Competitiveness  & \parbox{2.5cm}{Swiss online retailers}& \parbox{9cm}{The competitiveness differs among the retailers. Many of them offer products at a price similar to their competitors.}\vspace{10pt} \\
+    
+\ref{fig:sensitivity.analysis} & \parbox{3cm}{Annual increase of the energy price} & Running cost & \parbox{9cm}{
+  Curves of the running cost with respect to the parameters in Equation (\ref{eq:run.cost}). The difference of the running cost across the energy classes does not seem to change significantly when varying the parameters.
+} 
+  \end{tabular}
+  \caption{Description of the figures for the exploratory analysis.}
+  \label{tab:explor-plot}
+\end{table*}
+
+\begin{table*}[h!]
+  \centering
+  \begin{tabular}{rllr}
+
+    \hline \vspace{-9.5pt} \\
+    & Device & Brand & \parbox{5cm} {Mean minimum  energy price of a [kWh] before profit} \vspace{5pt}  \\
+
+    \hline \vspace{-9.5pt} \\
+    1 & Clothes washer & AEG & 1.90 \\ 
+    3 & Clothes washer & Bosch & -0.51 \\ 
+    7 & Clothes washer & Merker & 1.59 \\ 
+    8 & Clothes washer & Schulthess & 1.75 \\ 
+    9 & Clothes washer & ZUG & 1.51 \\ 
+    10 & Dishwasher & AEG & 0.38 \\ 
+    12 & Dishwasher & Bosch & 0.32 \\ 
+    14 & Dishwasher & Miele & 0.44 \\ 
+    15 & Dishwasher & Siemens & 0.33 \\ 
+    16 & Dishwasher & ZUG & 0.94 \\ 
+    17 & Freezer & Bosch & 0.33 \\ 
+    18 & Freezer & Electrolux & 0.38 \\ 
+    19 & Freezer & Liebherr & 0.27 \\ 
+    20 & Freezer & Siemens & 0.27 \\ 
+    21 & Fridge & Bauknecht & 0.33 \\ 
+    22 & Fridge & Bosch & 0.27 \\ 
+    24 & Fridge & Forster & 0.20 \\ 
+    26 & Fridge & Sibir & 0.02 \\ 
+    27 & Fridge & Siemens & 0.12 \\ 
+    \hline
+  \end{tabular}
+  \caption{Minimum price of a [kWh] such that the most efficient product is profitable over 15 years by home appliance category and brand. Some brands do not offer A+++ products (Sibir for example), hence the comparison is between A++ and A+ products. Purchasing price of A++ products are almost similar to those of A+ products, explaining the small threshold. Negative numbers signify that the most efficient products already have  a lower purchasing price.}
+  \label{tab:price-min-energy}
+\end{table*}
+
+\begin{table*}
+\begin{center}
+\begin{tabular}{l c c c c }
+\hline
+Dependent Variable                 & DMTC  & DMD & DMTC & DMD \\
+\hline \vspace{-9.5pt} \\
+(Intercept)      & $121.51 \; (59.24)^{*}$ & $0.07 \; (0.04)^{*}$ & $95.73 \; (46.76)^{*}$ & $0.01 \; (0.01)$     \\
+DeviceDishwasher & $-49.70 \; (58.66)$     & $-0.06 \; (0.04)$    &                        &                      \\
+DeviceFreezer    & $-62.15 \; (60.08)$     & $-0.06 \; (0.04)$    &                        &                      \\
+DeviceFridge     & $-58.39 \; (58.20)$     & $-0.05 \; (0.04)$    &                        &                      \\
+Energy.classA++  & $-9.57 \; (23.87)$      & $0.02 \; (0.01)$     & $-1.85 \; (24.04)$     & $0.02 \; (0.01)^{*}$ \\
+Energy.classA+++ & $30.64 \; (29.20)$      & $0.00 \; (0.01)$     & $38.43 \; (27.56)$     & $0.01 \; (0.01)$     \\
+BrandBosch       &                         &                      & $-55.23 \; (46.02)$    & $0.00 \; (0.01)$     \\
+BrandElectrolux  &                         &                      & $-65.68 \; (46.55)$    & $0.03 \; (0.02)$     \\
+BrandLiebherr    &                         &                      & $18.45 \; (74.72)$     & $-0.01 \; (0.01)$    \\
+BrandMiele       &                         &                      & $-7.50 \; (51.26)$     & $-0.02 \; (0.01)$    \\
+BrandSibir       &                         &                      & $-27.80 \; (74.69)$    & $-0.01 \; (0.01)$    \\
+BrandSiemens     &                         &                      & $-49.93 \; (48.66)$    & $-0.01 \; (0.01)$    \\
+BrandZUG         &                         &                      & $8.67 \; (47.96)$      & $0.02 \; (0.01)$     \\
+\hline \vspace{-9.5pt} \\
+R$^2$            & 0.04                    & 0.06                 & 0.14                   & 0.20                 \\
+Adj. R$^2$       & 0.00                    & 0.02                 & 0.07                   & 0.13                 \\
+Num. obs.        & 121                     & 121                  & 121                    & 121                  \\
+\hline
+\multicolumn{5}{l}{\scriptsize{\textsuperscript{*}$p<0.05$}}
+\end{tabular}
+\caption{Regression results. The differences with the minimum cost (DMTC) and
+  difference with minimum discount (DMD) are described according the energy
+  class and either the device category or the producers. Baseline for the
+  regression is a A+ device being either a clothes washers or a Bauknecht
+  device, depending which model is fitted.}
+\label{tab:reg.out}
+\end{center}
+\end{table*}
+
+
+
+\end{document}

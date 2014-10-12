@@ -1,0 +1,659 @@
+% Copyright Marius Hofert and Martin Maechler
+\newif\ifTimes\newif\ifJSS\JSStrue
+\JSSfalse%<- comment this (in and out) - PLUS set JSS <- ... in 01_setup_fcts_lapply.Rnw
+\ifJSS\Timesfalse
+\documentclass[article]{jss}
+\else\Timestrue
+\documentclass[article,nojss]{jss}
+\fi
+% undefine Schunk (due to jss.sty)
+\expandafter\let\csname Schunk\endcsname\relax
+\expandafter\let\csname endSchunk\endcsname\relax
+
+
+%%% document related info %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\author{Marius\ Hofert\thanks{The\ author\ (Willis\ Research\ Fellow)\ thanks\
+    Willis\ Re\ for\ financial\ support\ while\ this\ work\ was\ being\
+    completed.}\\ ETH\ Zurich \And Martin M\"achler\\ ETH\ Zurich}
+\Address{
+  Marius Hofert\\
+  RiskLab, Department of Mathematics\\
+  ETH Zurich\\
+  8092 Zurich, Switzerland\\
+  E-mail: \email{marius.hofert@math.ethz.ch}\\
+  URL: \url{http://www.math.ethz.ch/~hofertj/}
+
+  \bigskip
+  Martin M\"achler\\
+  Seminar f\"ur Statistik, HG G~16\\
+  ETH Zurich\\
+  8092 Zurich, Switzerland\\
+  E-mail: \email{maechler@stat.math.ethz.ch}\\
+  URL: \url{http://stat.ethz.ch/people/maechler}
+}
+\title{Parallel and other simulations in \R\ made easy:\\ An end-to-end study}
+% \title{Parallel computing in \R\ made easy:\\ An end-to-end simulation study}
+% \title{How to simulate in parallel with \R:\\ A complete study}
+% for pretty printing and a nice hypersummary, also set:
+\Plainauthor{Marius Hofert, Martin M{\"a}chler}% note: 'M\"achler' does not work with SweavePDF!; MH: yes it does :-)
+\Plaintitle{Parallel and other simulations in R made easy: An end-to-end study} % without formatting
+\newcommand*{\mysubject}{Article}
+
+% abstract and keywords (at least one keyword must be supplied)
+\Abstract{\hspace{-1.84em} It is shown how to set up, conduct, and analyze large simulation
+  studies with the new \R\ package
+  \begin{align*}
+    \text{\pkg{simsalapar}} = \text{\pkg{sim}ulations \pkg{s}implified \pkg{a}nd \pkg{la}unched
+        \pkg{par}allel}.% or: simulations simplified a lot via? after? as? parallel(ization); a = activity,
+                   % assignment, aid; s = solve; l = lazy, lay, ... simulate simpler as long as
+                   % parallelized?; ala = alate oder ala selbst (fluegel);
+                   % simulations a la parallel
+                   % ... simulations simplified and launched parallel?
+                   % see http://www.wordbyletter.com/prefixe.php
+  \end{align*}
+  A simulation study typically starts with determining a collection of input
+  variables and their values on which the study depends, such as sample sizes,
+  dimensions, types and degrees of dependence, estimation methods,
+  etc. Computations are desired for all combinations of these variables. If
+  conducting these computations sequentially is too time-consuming, parallel
+  computing can be applied over all combinations of select variables. The final result
+  object of a simulation study is typically an array. From this array, summary
+  statistics can be derived and presented in terms of (flat contingency or
+  \LaTeX) tables or visualized in terms of (matrix-like) figures.
+
+  The \R\ package \pkg{simsalapar} provides several tools to achieve the above
+  tasks. Warnings and errors are dealt with correctly, various
+  seeding methods are available, and run time
+  is measured. Furthermore, tools for analyzing the results via tables or
+  graphics are provided. In contrast to
+  rather minimal examples typically found in \R\ packages or vignettes, an
+  end-to-end, not-so-minimal simulation problem from the realm of quantitative
+  risk management is given. The concepts presented and solutions provided by
+  \pkg{simsalapar} may be of interest to students, researchers, and
+  practitioners as a how-to for conducting realistic, large-scale simulation
+  studies in \R. Also, the development of the package revealed useful
+  improvements to \R\ itself, which are available in \R\ 3.0.0.
+}
+
+\Keywords{\R, simulation, parallel computing, data analysis}
+\Plainkeywords{R, simulation, parallel computing, data analysis}
+
+% publication information (will be filled out by the technical editor)
+% \Volume{13}
+% \Issue{9}
+% \Month{September}
+% \Year{2004}
+% \Submitdate{2004-09-29}
+% \Acceptdate{2004-09-29}
+
+%%% packages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% font stuff
+\usepackage[T1]{fontenc}% for correct hyphenation and T1 encoding
+\usepackage{lmodern}% latin modern font
+\usepackage[american]{babel}% for American English
+\usepackage{microtype}% for character protrusion and font expansion (only with pdflatex)
+
+% % colors
+% \usepackage[
+% hyperref,% for working together with hyperref
+% table% for coloring matrix entries
+% ]{xcolor}% color package; load before tocstyle
+
+% misc
+\usepackage{eso-pic}% for setting up background
+\usepackage{rotating}% for landscape tables
+\usepackage{amsmath}% sophisticated mathematical formulas with amstex (includes \text{})
+\usepackage{mathtools}% fix amsmath deficiencies
+\usepackage{amssymb}% sophisticated mathematical symbols with amstex
+\usepackage{amsthm}% theorem environments
+\usepackage{etoolbox}% for preto
+\usepackage{bm}% for bold math symbols
+\usepackage{bbm}% only for indicator functions
+\usepackage{enumitem}% sophisticated itemize, enumerate
+\usepackage{graphicx}% for including figures
+\usepackage{grffile}% extending the file name processing of graphicx
+\usepackage{tikz}% sophisticated graphics package
+\usetikzlibrary{decorations.pathmorphing, decorations.text}% for text decorations
+\usepackage{wrapfig}% for wrapping figures and tables
+\usepackage{tabularx}% for tables
+\usepackage{dcolumn}% for special column types and alignment requirements
+\usepackage{siunitx}% for typesetting numbers with units; also for alignment in tables
+\usepackage{booktabs}% for table layout
+\usepackage{multirow}% for table entries spanning several row
+\usepackage{Sweave}% for working with R
+\usepackage{listings}% for including source code
+
+\usepackage{catchfile}
+
+
+% #1 = control sequence to define
+% #2 = variable to get the value of
+\newcommand{\getvar}[2]{%
+  \CatchFileEdef#1{"|kpsewhich -var-value #2"}{\endlinechar=-1 }%
+}
+
+\getvar{\username}{USER}
+
+\newif\ifMM
+\def\MM{maechler}
+\ifx\MM\username \MMtrue \else \MMfalse \fi
+
+\ifMM\else
+\usepackage{vruler}% for showing line numbers
+\fi
+
+% \usepackage{csquotes}% recommended by biblatex
+% \usepackage[
+% backend=bibtex,% for texi2dvi to automatically run biblatex
+% style=authoryear,% author-year style
+% dashed=false,% remove dashed feature for the repeating authors
+% uniquename=init,% disambiguate names using initials only (required for firstinits=true)
+% firstinits=true,% abbreviate first names
+% hyperref=true,% use hyperref
+% maxcitenames=2,% use max. 2 names in citations in the text
+% maxbibnames=6,% print max. 6 names in the references
+% date=iso8601,% use iso-format for dates
+% urldate=iso8601% use iso-format for url-dates
+% ]{biblatex}% for bibliography
+% \usepackage[% already loaded by jss.cls
+% hypertexnames=false,% for correct links (duplicate-error solution)
+% setpagesize=false,% necessary in order to not change text-/paperformat for the document
+% pdfborder={0 0 0},% removes border around links
+% pdfstartview=Fit,% fit page to pdf viewer
+% bookmarksopen=true,% expand all bookmarks in adobe reader
+% bookmarksnumbered=true% number bookmarks in adobe reader
+% ]{hyperref}% all links stay black and are thus invisible
+% \hypersetup{
+%   pdfauthor=\myauthorone,% pdf info
+%   pdftitle=\mytitle,% pdf info
+%   pdfsubject=\mysubject% pdf info
+% }
+%\usepackage{refcheck}% displaying labels, checking references
+
+%%% settings %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% colors
+\xdefinecolor{lightgray}{RGB}{247, 247, 247}% R's col2rgb("gray97"); #F7F7F7
+\xdefinecolor{semilightgray}{RGB}{240, 240, 240}% R's col2rgb("gray94"); #F0F0F0
+\xdefinecolor{middlegray}{RGB}{127, 127, 127}% R's col2rgb("gray50"); #7F7F7F
+\xdefinecolor{seashell}{RGB}{255, 245, 238}% R's col2rgb("seashell"); "#FFF5EE"
+\xdefinecolor{yellow}{RGB}{255, 255, 128}% R's self-defined (weakened yellow); #FFFF80
+\xdefinecolor{orange}{RGB}{238, 118, 0}% R's col2rgb("darkorange2"); #EE7600
+\xdefinecolor{red}{RGB}{178, 34, 34}% R's col2rgb("firebrick"); #B22222
+\xdefinecolor{blue}{RGB}{58, 95, 205}% R's col2rgb("royalblue3"); #3A5FCD
+\xdefinecolor{deepskyblue}{RGB}{0, 154, 205}% R's col2rgb("deepskyblue3"); #009ACD
+\xdefinecolor{chocolate}{RGB}{205, 102, 29}% R's col2rgb("chocolate3"); #CD661D
+\newcommand*{\gray}[1]{\textcolor{gray}{#1}}
+\newcommand*{\seashell}[1]{\textcolor{seashell}{#1}}
+\newcommand*{\yellow}[1]{\colorbox{yellow}{#1}}
+\newcommand*{\orange}[1]{\textcolor{orange}{#1}}
+\newcommand*{\red}[1]{\textcolor{red}{#1}}
+\newcommand*{\blue}[1]{\textcolor{blue}{#1}}
+
+% list settings
+\setlist{% general list settings (enumitem's itemize, enumerate, and description)
+  align=left,% left-aligned enumerate
+  labelsep=*,% align all item bodies vertically
+  leftmargin=*,% begin item content at a variable place depending on the item; use \parindent to set it exactly to \parindent
+  topsep=1mm,% space before enumerate
+  itemsep=0mm% space between enumerate items
+}
+\setlist[itemize,1]{label={\protect\rule[0.18em]{0.36em}{0.36em}\ }}% itemize label on level 1
+\setlist[itemize,2]{label={\protect\raisebox{0.12em}{\resizebox{0.48em}{0.48em}{$\blacktriangleright$}}\ }}% itemize label on level 2
+\setlist[itemize,3]{label={\protect\rule[0.32em]{0.62em}{0.08em}\ }}% itemize label on level 3
+\setlist[enumerate,1]{label=\arabic*)}% enumerate label on level 1
+\setlist[enumerate,2]{label=\arabic{enumi}.\arabic*)}% enumerate label on level 2
+\setlist[enumerate,3]{label=\arabic{enumi}.\arabic{enumii}.\arabic*)}% enumerate label on level 3
+
+% misc
+% \makeatletter
+% \newcommand\myisodate{\number\year-\ifcase\month\or 01\or 02\or 03\or 04\or 05\or 06\or 07\or 08\or 09\or 10\or 11\or 12\fi-\ifcase\day\or 01\or 02\or 03\or 04\or 05\or 06\or 07\or 08\or 09\or 10\or 11\or 12\or 13\or 14\or 15\or 16\or 17\or 18\or 19\or 20\or 21\or 22\or 23\or 24\or 25\or 26\or 27\or 28\or 29\or 30\or 31\fi}% create iso date
+% \makeatother
+% \newcommand*{\abstractnoindent}{}% define abstract such that it has no indent
+% \let\abstractnoindent\abstract
+% \renewcommand*{\abstract}{\let\quotation\quote\let\endquotation\endquote
+%   \abstractnoindent}
+% \deffootnote[1em]{1em}{1em}{\textsuperscript{\thefootnotemark}}% setting for footnote
+
+% Sweave (see ?RweaveLatex)
+%% No effect here:
+%% \fvset{listparameters={\setlength{\topsep}{-12pt}}} % remove space between (displayed) input and output:
+%% \newenvironment{Schunk}{\vspace{\topsep}}{\vspace{\topsep}}
+%% \newenvironment{Schunk}{}{}% == default of Sweave.sty
+\newenvironment{Schunk}{\vspace{0.25\baselineskip}}{\vspace{0.25\baselineskip}}% adjust space before/after chunk
+
+% general listings settings
+% see http://tex.stackexchange.com/questions/94238/listings-general-settings-for-a-language-seem-to-be-overwritten-not-respected/94242#comment201538_94242
+\lstset{% these settings are used for *all* listings
+  basicstyle=\ttfamily\small,% basic font style
+  frame=lrtb, framerule=0pt, framexleftmargin=1pt,% put some space around the shade
+  basewidth=0.5em,% smaller base width of a character
+  tabsize=8,% sizes of tabs
+  showstringspaces=false,% do not replace spaces in strings by a certain character
+  captionpos=b,% positioning of the caption below
+  breaklines=true,% automatic line breaking
+  % escapeinside={(*}{*)},% escaping to LaTeX => EVIL since str() may produce "(*" which is then escaped...
+  fancyvrb=true,% verbatim code is typeset by listings
+  extendedchars=false,% prohibit extended chars (chars of codes 128--255)
+  rangeprefix=\#\#'\ \{\ ,% marker opening symbol
+  rangesuffix=\ \},% marker closing symbol
+  includerangemarker=false% hide markers
+}
+
+% lower priority settings (should be used first in lstlisting environments; will
+% be overwritten by the language specific settings if both are given)
+\lstdefinestyle{input}{
+  backgroundcolor=\color{semilightgray},% background color
+  commentstyle=\itshape\color{chocolate},% comment style
+  keywordstyle=\color{blue},% keyword style
+  stringstyle=\color{deepskyblue},% string style
+  numbers=left,% display line numbers on the left side
+  numberstyle=\color{middlegray}\tiny% use small line numbers
+}
+\lstdefinestyle{output}{
+  backgroundcolor=\color{lightgray}% background color
+}
+
+% listings settings for LaTeX (note: TeX dialects don't have keywords but texcs's)
+\lstdefinestyle{Lstyle}{
+  language=[LaTeX]TeX,% set programming language
+  texcs={},% texcs
+  otherkeywords={}% undefine otherkeywords
+}
+
+% LaTeX input with listings
+\lstnewenvironment{Linput}[1][]{%
+  \lstset{style=input, style=Lstyle}
+  #1% content
+}{\vspace{-0.25\baselineskip}}% note: -\baselineskip leads to no space
+
+% LaTeX output with listings
+\lstnewenvironment{Loutput}[1][]{%
+  \lstset{style=output, style=Lstyle}
+  #1% content
+}{\vspace{-0.25\baselineskip}}% note: -\baselineskip leads to no space
+
+% listings settings for R
+\lstdefinestyle{Rstyle}{
+  language=R,% set programming language
+  literate={<-}{{$\bm\leftarrow$}}2{<<-}{{$\bm{\mathrel{\bm\leftarrow\mkern-14mu\leftarrow}$}}}2{<=}{{\raisebox{0.6pt}{\scalebox{0.8}{$\bm\le$}}}}2{>=}{{\raisebox{0.6pt}{\scalebox{0.8}{$\bm\ge$}}}}2{!=}{{$\bm\neq$}}2,% item to replace, text, length of chars
+  keywords={if, else, repeat, while, function, for, in, next, break},% keywords; see R language manual, /usr/local/texlive/2012/texmf-dist/tex/latex/listings/lstlang3.sty
+  otherkeywords={}% undefine otherkeywords to remove !,!=,~,$,*,\&,\%/\%,\%*\%,\%\%,<-,<<-,_,/
+}
+
+% undefine Sinput, and Soutput (due to missing 'lstrenewenvironment')
+\expandafter\let\csname Sinput\endcsname\relax
+\expandafter\let\csname endSinput\endcsname\relax
+\expandafter\let\csname Soutput\endcsname\relax
+\expandafter\let\csname endSoutput\endcsname\relax
+
+% R input with listings
+\lstnewenvironment{Sinput}[1][]{%
+  \lstset{style=input, style=Rstyle}
+  #1% content
+}{\vspace{-0.25\baselineskip}}% note: -\baselineskip leads to no space
+
+% R output with listings
+\lstnewenvironment{Soutput}[1][]{%
+  \lstset{style=output, style=Rstyle}
+  #1% content
+}{\vspace{-0.25\baselineskip}}% note: -\baselineskip leads to no space
+
+% inline code commands
+\newcommand*{\R}{\textsf{R}}
+\newcommand*{\Rcode}{\lstinline[language=R, basicstyle=\ttfamily]}% for inline R code
+\newcommand*{\LL}{\lstinline[{language=[LaTeX]TeX}, basicstyle=\ttfamily]}% for inline LaTeX code
+\newcommand*{\cmd}{\lstinline[basicstyle=\ttfamily]}% for shell commands, file names etc.
+\newcommand*{\file}[1]{\texttt{#1}}% for file names or endings
+\newcommand*{\HRule}[1][0.95]{\par\noindent\rule{#1\linewidth}{0.5mm}\\}% in tabular\newcommand{\Hline}[1]{\\[5pt]\hline#1\\[-10pt]}
+
+% bibliography
+% \setlength{\bibhang}{1em}% separate bibitems by indentation
+% \renewcommand*{\newunitpunct}{\addcomma\space}% separate all units by comma
+% \DeclareNameAlias{sortname}{last-first}% some styles need "default" instead of "sortname"
+% \DefineBibliographyExtras{american}{\DeclareQuotePunctuation{}}% put comma outside of title
+% \renewbibmacro*{volume+number+eid}{% use volume(number) for articles for example
+%   \setunit*{\addcomma\space}%
+%   \printfield{volume}%
+%   \printfield{number}}
+% \DeclareFieldFormat*{number}{(#1)}
+% \DeclareFieldFormat*{title}{#1}% remove quotes from title
+% \DeclareFieldFormat{doi}{% see /usr/local/texlive/2011/texmf-dist/tex/latex/biblatex/biblatex.def
+%   %\mkbibacro{DOI}\addcolon\space% removed "DOI:" (wrong font etc.)
+%   \ifhyperrefb
+%     {\href{http://dx.doi.org/#1}{\nolinkurl{doi:#1}}}% added "doi:"
+%     {\nolinkurl{doi:#1}}}% added "doi:"
+% \renewbibmacro*{in:}{}% remove in label
+% \DeclareFieldFormat{isbn}{ISBN #1}% format isbn number
+% \DeclareFieldFormat{pages}{#1}% remove page label
+% \DeclareFieldFormat{url}{\url{#1}}% remove url label
+% \DeclareFieldFormat{urldate}{\mkbibparens{#1}}% remove visited on label
+% \bibliography{../../../biblatex/mybib}% bibliography data
+\renewcommand*{\cite}[2][]{\citet[#1]{#2}}
+
+
+%%% environments %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% theorems
+\newif\ifstarttheorem
+\newtheoremstyle{mythmstyle}%
+{0.5em}% space above
+{0.5em}% space below
+{}% body font
+{}% indent amount
+{\sffamily\bfseries\global\starttheoremtrue}% head font
+{}% punctuation after head
+{\newline}% space after head
+{\thmname{#1}\ \thmnumber{#2}\ \thmnote{(#3)}}% head spec
+\theoremstyle{mythmstyle}% activate style
+\newtheorem{definition}{Definition}[section]
+\newtheorem{proposition}[definition]{Proposition}
+\newtheorem{lemma}[definition]{Lemma}
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{corollary}[definition]{Corollary}
+\newtheorem{remark}[definition]{Remark}
+\newtheorem{example}[definition]{Example}
+\newtheorem{algorithm}[definition]{Algorithm}
+
+% proof environment
+\renewcommand*\proofname{Proof}
+\makeatletter% correct q.e.d. adjustment
+\renewenvironment{proof}[1][\proofname]{\par
+  \pushQED{\qed}%
+  \normalfont\topsep2\p@\@plus2\p@\relax
+  \trivlist
+\item[\hskip\labelsep
+  \sffamily\bfseries #1]\gdef\mycurrenvir{proof}\global\starttheoremtrue\mbox{}\hfill\\*\ignorespaces
+}{%
+ \gdef\mycurrenvir{\relax}
+  \popQED\endtrivlist\@endpefalse
+}
+\makeatother
+
+% vertical spacing when newtheorems start with an environment
+% itemize
+\makeatletter
+\preto\itemize{%
+  \if@inlabel
+    \ifstarttheorem
+      \mbox{}\par\nobreak\vskip\glueexpr-\parskip-\baselineskip+0.3em\relax\hrule\@height\z@
+      \global\starttheoremfalse%
+    \fi%
+  \fi%
+ \def\tempa{proof}%
+ \ifx\tempa\mycurrenvir
+    \ifstarttheorem
+      \mbox{}\par\nobreak\vskip\glueexpr-\parskip-\baselineskip+0.3em\relax\hrule\@height\z@
+      \global\starttheoremfalse%
+    \fi%
+ \fi%
+}
+\preto\enditemize{\global\starttheoremfalse}
+\makeatother
+
+% enumerate
+\makeatletter
+\preto\enumerate{%
+  \if@inlabel
+    \ifstarttheorem
+      \mbox{}\par\nobreak\vskip\glueexpr-\parskip-\baselineskip+0.3em\relax\hrule\@height\z@
+      \global\starttheoremfalse%
+    \fi%
+  \fi%
+ \def\tempa{proof}%
+ \ifx\tempa\mycurrenvir
+    \ifstarttheorem
+      \mbox{}\par\nobreak\vskip\glueexpr-\parskip-\baselineskip+0.3em\relax\hrule\@height\z@
+      \global\starttheoremfalse%
+    \fi%
+ \fi%
+}
+\preto\endenumerate{\global\starttheoremfalse}
+\makeatother
+
+
+%%% commands %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% math commands
+\newcommand*{\eps}{\varepsilon}
+\newcommand{\T}{^{\top}}
+\newcommand*{\omu}[3]{\underset{#3}{\overset{#1}{#2}}}
+\newcommand*{\omuc}[3]{\underset{\mathclap{#3}}{\overset{\mathclap{#1}}{#2}}}% clapped version for saving space horizontally
+\renewcommand*{\vec}[2]{{\biggl(\begin{matrix} #1 \\ #2 \end{matrix}\biggr)}}
+\newcommand*{\I}{\mathbbm{1}}
+\newcommand*{\IN}{\mathbbm{N}}
+\newcommand*{\IK}{\mathbbm{K}}
+\newcommand*{\IR}{\mathbbm{R}}
+\newcommand*{\IC}{\mathbbm{C}}
+\newcommand*{\IP}{\mathbbm{P}}
+\newcommand*{\IE}{\mathbbm{E}}
+\newcommand*{\V}{\operatorname{V}}
+\newcommand*{\abs}{\operatorname{abs}}
+\newcommand*{\BV}{\operatorname{{BV}}}
+\newcommand*{\BVloc}{\operatorname{{BV}_{\text{loc}}}}
+\newcommand*{\Loneloc}{\operatorname{{L}^1_{\text{loc}}}}
+\renewcommand*{\S}{\operatorname{S}}
+\newcommand*{\tS}{\operatorname{\tilde{S}}}
+\newcommand*{\arginf}{\operatorname*{arginf}}
+\newcommand*{\argsup}{\operatorname*{argsup}}
+\newcommand*{\ran}{\operatorname{ran}}
+\newcommand*{\sign}{\operatorname{sign}}
+\newcommand*{\sinc}{\operatorname{sinc}}
+\newcommand*{\round}{\operatorname{round}}
+\newcommand*{\Li}{\operatorname{Li}}
+\renewcommand*{\th}{\bm{\theta}}
+\newcommand*{\cpsi}{{\mathring{\psi}}}
+\newcommand*{\psii}{{\psi^{-1}}}
+\newcommand*{\psis}[2]{{\psi_{#1}^{#2}}}
+\newcommand*{\psiis}[1]{{\psi_{#1}^{-1}}}
+\renewcommand*{\L}{\mathcal{L}}
+\newcommand*{\LS}{\mathcal{LS}}
+\newcommand*{\LSi}{\LS^{-1}}
+\newcommand*{\rank}{\operatorname{rank}}
+\newcommand*{\D}{\operatorname{D}}
+\renewcommand*{\O}{\mathcal{O}}
+\newcommand*{\Geo}{\operatorname{Geo}}
+\newcommand*{\Exp}{\operatorname{Exp}}
+\newcommand*{\Sibuya}{\operatorname{Sibuya}}
+\newcommand*{\GIG}{\operatorname{GIG}}
+\newcommand*{\Cauchy}{\operatorname{Cauchy}}
+\newcommand*{\Log}{\operatorname{Log}}
+\newcommand*{\U}{\operatorname{U}}
+\newcommand*{\B}{\operatorname{B}}
+\newcommand*{\NB}{\operatorname{NB}}
+\renewcommand*{\B}{\operatorname{B}}
+\newcommand*{\N}{\operatorname{N}}
+\renewcommand*{\t}{\text{t}}
+\newcommand*{\Var}{\operatorname{Var}}
+\newcommand*{\Cov}{\operatorname{Cov}}
+\newcommand*{\Cor}{\operatorname{Cor}}
+\newcommand*{\VaR}{\operatorname{VaR}}
+\newcommand*{\var}[3]{{{#1}^{\text{#2}}_{#3}}}
+\newcommand*{\xmax}{x_{\text{max}}}
+\newcommand*{\xmin}{x_{\text{min}}}
+\renewcommand*{\Re}{\operatorname{Re}}
+\renewcommand*{\Im}{\operatorname{Im}}
+
+% hyphenation
+\hyphenation{Ar-chi-me-dean}
+
+
+%%% document %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Note: If there is markup in \(sub)section, then it has to be escape like this:
+% \section[About Java]{About \proglang{Java}}
+
+\begin{document}
+\ifMM\else% MM likes "clean paper" (and wants to have people *read* it)
+% MH: Yes, but the ruler is typically good for feedback and the watermark is
+%     is required such that a journal can't say "... it has already been out..."
+% watermark
+% \AddToShipoutPicture{% set up watermark on every page
+%   \begin{tikzpicture}[remember picture, overlay]
+%     \node[scale=9,rotate=54.74,color=black!18] at (current
+%     page.center){\normalfont\sffamily Draft};
+%   \end{tikzpicture}%
+% }
+% ruler
+\setvruler[10pt][1][1][4][1][0pt][0pt][0pt][\textheight]%
+\fi
+
+\section{Introduction}
+Realistic mathematical or statistical models are often complex and not analytically
+tractable, thus require to be evaluated by simulation. In many areas such as
+finance, insurance, or statistics, it is therefore necessary to set up, conduct,
+and analyze simulation studies. Apart from minimal examples which address
+particular tasks, one often faces more difficult setups with a complex
+simulation problem at hand. For example, if a comparably small simulation
+already reveals an interesting result, it is often desired to conduct a larger
+study, involving more parameters, a larger sample size, or more simulation
+replications. However, run time for sequentially computing results for all
+variable combinations may now be too large. It may thus be beneficial to apply parallel
+computing for select variable combinations, be it on a multi-core processor with
+several central processing units (\emph{cores}), or on a network (\emph{cluster}) with
+several computers (\emph{nodes}). This adds another level of
+difficulty to solving the initial task. Users such as students (for a master or
+Ph.D.\ thesis, for example), researchers (for investigating the performance of a
+new statistical model), or practitioners (for computing model outputs in a short
+amount of time or validating internal models), are typically not primarily interested in the technical details
+of parallel computing, especially when it comes to more involved tasks such as
+correctly advancing a random number generator stream to guarantee
+reproducibility while having different seeds on different nodes. Furthermore,
+numerical issues often distort simulation results but remain undetected,
+especially if they happen rarely or are not captured correctly. These issues are
+either not, or not sufficiently addressed in examples, vignettes, or other
+packages one would consult when setting up a simulation study.
+
+In this paper, we introduce and present the new \R\ package \pkg{simsalapar} and
+show how it can be used to set up, conduct, and analyze a simulation study in \R. It
+extends the functionality of several other \R\ packages\footnote{For example,
+\pkg{simSummary}, \pkg{ezsim}, \pkg{harvestr}, and \pkg{simFrame}.}. In our
+view, a simulation
+study typically consists of the following parts:
+\begin{enumerate}
+\item\label{Step1} \emph{Setup}: The scientific problem; how to translate it to
+  a setup of a simulation study; breaking down the problem into different layers
+  and implementing the main, problem-specific function. These tasks are addressed
+  in Sections \ref{sec:translate}--\ref{sec:lapply} after introducing our
+  working example in the realm of quantitative risk management in Section
+  \ref{sec:scientific:q}.
+\item \emph{Conducting the simulation}: Here, approaches of how to compute in parallel
+  with \R are presented. They depend on whether the simulation study is run on one machine
+  (node) with a multi-core processor or on a cluster with several nodes. This is
+  addressed in Section \ref{sec:parallel}.
+\item\label{Step3} \emph{Analyzing the results}: How results of a simulation
+  study can be presented with tables or graphics. This is done in
+  Section \ref{sec:analysis}.
+\end{enumerate}
+In Section~\ref{sec:behind} we show additional and more advanced
+computations which are not necessary for understanding the paper. They rather
+emphasize what is going on ``behind the scenes'' of \pkg{simsalapar}, provide further
+functionality, explanations of our ansatz, and additional checks
+conducted. Section~\ref{sec:conclusion} concludes.
+%% \pkg{simSummary}:  one function simSummary(), get list of "inner" and
+%%                    "outer" parameters / results.
+%%                  Produces "table" like R objects..
+%% Vignette design:  n.sim, one "grid" or "inner", many "other"
+%%
+%% \pkg{ezsim}:  ezsim() -> object with quite flexible summary() and plot() methods
+%%            ++ : much more graphics than tables
+%%            ++ : "varList"-like object ("banker" (instead of "other")) ;
+%%	instead of doOne() have
+%%      {dgp(): data-gener-proc , estimator() - each user specified function}
+%%
+%% \pkg{harvestr}: Didactically nice idea {generality?};
+%%  ++ Basic idea (as our): What harvestr brings to the picture is
+%%     >> abstractions of the process of performing simulation <<
+%%  ++ emphasis on correct seeding for parallel
+%%  ++ timing  {and caching (correctly ??) via \pkg{digest}}
+%%   some small examples, one with lme4.
+%%
+%% \pkg{simFrame}: Rcpp based, S4 classes and methods (many!)
+%% --> JSS paper 2010  http://www.jstatsoft.org/v37/i03/
+%% 	An Object-Oriented Framework for Statistical
+%% 	Simulation: The R Package simFrame
+%% ++ save seeds (how? / ..)
+%% plot() method for sim.result
+%%  "longer" examples // robustness: contamination + NA's
+%%  "design-based simulation" for survey sampling ..
+
+As a working example throughout the paper, we present a simulation problem from
+the realm of quantitative risk management. The example is minimal in the sense
+that it can still be run on a standard computer and does not require access to a
+cluster. However, it is not too minimal in that it covers a wide range of possible
+problems a simulation study might face. We believe this to be useful for users
+like students, researchers, and practitioners, who often need, or would like,
+to implement simulation studies of similar kind, but miss guidance and an
+accompanying package of how this can be achieved.
+
+\input{01_setup_fcts_lapply}
+\input{03_parallel_R}
+\input{04_analysis}
+
+\clearpage%%<---- Allow to print 2nd part separately !
+
+\input{05_behind}
+
+\input{05a_foreach}
+\input{05b_nested_foreach}
+\input{05c_Rmpi}
+\input{05d_parallel_mclapply}
+\input{05e_parallel_clusterApply}
+
+\ifTimes\input{06_wrapup}\fi
+
+\section{Conclusion}\label{sec:conclusion}
+The \R\ package \pkg{simsalapar} allows one to easily set up, conduct, and
+analyze large-scale simulations studies. The user of our package only has to
+provide the list of input variables on which the simulation study depends (which
+can be created with the function \code{varlist()}) and the function which
+computes the desired statistic (or result of the study) for one combination of input variables
+(termed \code{doOne()} here). The user can then choose between different functions
+to conduct the simulation (sequentially via \code{doLapply()} or in parallel via
+one of \code{doForeach()}, \code{doRmpi()}, \code{doMclapply()}, or
+\code{doClusterApply()}), possibly involving replicates (via a variable of type
+``N'' as our \code{n.sim} here). Important aspects of a simulation study such as
+catching of errors and warnings, measuring run time, or dealing with seeds are
+automatically taken care of and adjusted easily. Furthermore, \pkg{simsalapar} provides
+various tools to analyze the results. Besides several useful auxiliary functions,
+the high-level functions \code{toLatex()} and \code{mayplot()} can be used to
+create sophisticated \LaTeX\ tables and matrix-like figures of the results, respectively.
+
+In the first part of the paper (up to and including Section~\ref{sec:analysis}),
+we explained and guided the user/reader through a working example end-to-end,
+which highlights various of the above steps. More advanced information about
+\pkg{simsalapar}, including explanations of functions under the hood, tests, and
+further examples were either addressed in the second part of the paper
+(Section~\ref{sec:behind}) or can be found in the package itself; see, for
+example, the demos of \pkg{simsalapar}.
+
+\subsection*{Acknowledgements}
+We would like to thank Matthias Kirchner (ETH Zurich) and Dr.\ Robin Nittka (Google
+Zurich) for proofreading the manuscript and our past and current
+master and Ph.D.\ students for motivating this work.
+
+% \appendix
+% Appendix will have several *section*s eventually
+% each with an \input{} here:
+% \input{A_mplot}% mayplot()
+
+%% "FIXME": could generate this list automatically from ./pkgs.bib :
+\nocite{murrell-gridBase%
+,yu-RMpi%
+,RevA-foreach%
+,dahl-xtable%
+,tierneyRLS-snow%
+,maechler-sfsmisc%
+}
+
+\bibliography{mybib,% MMMH : Marius(& Martin)'s
+  pkgs}% <-- (almost) all non-standard packages from sessionInfo()
+% natbib
+% \printbibliography[heading=bibintoc]% not allowed by JSS
+\end{document}
+
+%%% Local Variables:
+%%% TeX-master: t
+%%% End:
